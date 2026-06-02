@@ -59,9 +59,11 @@ def verify_ipn_signature(
             hashlib.sha512,
         ).hexdigest()
 
-        if len(signature) != len(computed_sig):
+        sig_norm = signature.strip().lower()
+        computed_norm = computed_sig.lower()
+        if len(sig_norm) != len(computed_norm):
             return False
-        return hmac.compare_digest(signature, computed_sig)
+        return hmac.compare_digest(sig_norm, computed_norm)
     except (json.JSONDecodeError, TypeError, ValueError):
         return False
 

@@ -269,7 +269,7 @@ class MinAmountParams(TypedDict, total=False):
 
     currency_from: str
     currency_to: str
-    fiat_equivalent: Optional[Union[str, bool]]
+    fiat_equivalent: Optional[str]
     is_fixed_rate: Optional[bool]
     is_fee_paid_by_user: Optional[bool]
 

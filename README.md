@@ -123,7 +123,7 @@ np = NowPayments(
 |--------|-------------|-----|
 | `create_payment(params)` | Create payment, get address + amount | No |
 | `get_payment_status(payment_id)` | Get payment by ID | No |
-| `get_payments(params=None)` | Paginated list of payments | No |
+| `get_payments(params=None, jwt_token=None)` | Paginated list of payments | JWT recommended |
 | `update_payment_estimate(payment_id)` | Refresh estimate before expiry | No |
 
 ### Invoices
@@ -180,7 +180,7 @@ np = NowPayments(
 | `get_sub_partner_balance(sub_partner_id)` | Get balance | No |
 | `create_transfer(params, jwt_token)` | Transfer between accounts | Yes |
 | `deposit(params, jwt_token)` | Deposit from master to user | Yes |
-| `write_off(params, jwt_token=None)` | Write off to master | Optional |
+| `write_off(params, jwt_token)` | Write off to master | JWT required |
 | `get_transfers(params=None, jwt_token=None)` | List transfers | Optional |
 | `get_transfer(id, jwt_token=None)` | Get single transfer | Optional |
 

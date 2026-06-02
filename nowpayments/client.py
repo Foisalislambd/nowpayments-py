@@ -73,7 +73,9 @@ class NowPayments:
         code = currency.strip() if currency else ""
         if not code:
             raise ValueError('Currency code is required (e.g. "btc", "eth")')
-        r = self._client.get(f"/v1/currencies/{code}")
+        from urllib.parse import quote
+
+        r = self._client.get(f"/v1/currencies/{quote(str(code), safe='')}")
         return r.json()
 
     def get_estimate_price(self, params: EstimateParams) -> dict[str, Any]:
@@ -120,9 +122,16 @@ class NowPayments:
         r = self._client.get(f"/v1/payment/{payment_id}")
         return r.json()
 
-    def get_payments(self, params: Optional[ListPaymentsParams] = None) -> dict[str, Any]:
-        """Get paginated list of payments."""
-        r = self._client.get("/v1/payment/", params=params or {})
+    def get_payments(
+        self,
+        params: Optional[ListPaymentsParams] = None,
+        jwt_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Get paginated list of payments. JWT recommended per API docs."""
+        headers = {}
+        if jwt_token:
+            headers["Authorization"] = f"Bearer {jwt_token}"
+        r = self._client.get("/v1/payment/", params=params or {}, headers=headers)
         return r.json()
 
     def update_payment_estimate(self, payment_id: int | str) -> dict[str, Any]:
@@ -283,6 +292,18 @@ class NowPayments:
         r = self._client.post("/v1/payout/validate-address", json=params)
         return r.json()
 
+    def get_payout_fee(self, currency: str, amount: float) -> dict[str, Any]:
+        """Estimate network fee for a payout."""
+        if not currency or not str(currency).strip():
+            raise ValueError('Currency is required (e.g. "btc", "eth")')
+        if amount is None:
+            raise ValueError("Amount is required")
+        r = self._client.get(
+            "/v1/payout/fee",
+            params={"currency": currency, "amount": amount},
+        )
+        return r.json()
+
     def cancel_payout(self, payout_id: str, jwt_token: str) -> None:
         """Cancel a scheduled payout. Requires JWT."""
         if not jwt_token or not str(jwt_token).strip():
@@ -290,7 +311,7 @@ class NowPayments:
                 "JWT token is required for cancel_payout. Call get_auth_token first."
             )
         self._client.post(
-            f"/v1/payout/{payout_id}/cancel",
+            "/v1/payout/w_id/cancel",
             json={"payout_id": payout_id},
             headers={"Authorization": f"Bearer {jwt_token}"},
         )
@@ -378,9 +399,12 @@ class NowPayments:
             raise ValueError(
                 "JWT token is required for create_sub_partner_payment. Call get_auth_token first."
             )
+        body = dict(params)
+        if body.get("is_fixed_rate") is not None and body.get("fixed_rate") is None:
+            body["fixed_rate"] = body.pop("is_fixed_rate")
         r = self._client.post(
             "/v1/sub-partner/payment",
-            json=params,
+            json=body,
             headers={"Authorization": f"Bearer {jwt_token}"},
         )
         return r.json()
@@ -419,16 +443,17 @@ class NowPayments:
         )
         return r.json()
 
-    def write_off(
-        self,
-        params: dict[str, Any],
-        jwt_token: Optional[str] = None,
-    ) -> dict[str, Any]:
+    def write_off(self, params: dict[str, Any], jwt_token: str) -> dict[str, Any]:
         """Write off from user to master account. Requires JWT."""
-        headers = {}
-        if jwt_token:
-            headers["Authorization"] = f"Bearer {jwt_token}"
-        r = self._client.post("/v1/sub-partner/write-off", json=params, headers=headers)
+        if not jwt_token or not str(jwt_token).strip():
+            raise ValueError(
+                "JWT token is required for write_off. Call get_auth_token first."
+            )
+        r = self._client.post(
+            "/v1/sub-partner/write-off",
+            json=params,
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
         return r.json()
 
     def deposit(
